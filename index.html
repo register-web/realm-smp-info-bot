@@ -7,11 +7,11 @@
 <title>Realm — Minecraft Mini App</title>
 <style>
 :root {
-  --bg: #0b0b0b;
-  --surface: #121212;
+  --bg: #0e0e0e;
+  --surface: #141414;
   --text: #F2F2F2;
   --subtitle: #9a9a9a;
-  --stroke: #1f1f1f;
+  --stroke: #222222;
   --radius: 14px;
 }
 
@@ -25,6 +25,7 @@ body {
   max-height: 100dvh;
   overflow: hidden;
   background: var(--bg) !important;
+  background-color: var(--bg) !important;
   color: var(--text);
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, Arial, sans-serif;
   display: flex;
@@ -471,11 +472,11 @@ p {
   const hasTelegram = Boolean(tg);
   let activeModal = null;
   const fixedPalette = {
-    '--bg': '#0b0b0b',
-    '--surface': '#0b0b0b',
+    '--bg': '#0e0e0e',
+    '--surface': '#141414',
     '--text': '#F2F2F2',
     '--subtitle': '#9a9a9a',
-    '--stroke': 'rgba(255,255,255,0.08)',
+    '--stroke': '#222222',
   };
 
   const modals = Array.from(document.querySelectorAll('.modal'));
@@ -487,11 +488,24 @@ p {
     Object.entries(fixedPalette).forEach(([key, value]) => {
       root.style.setProperty(key, value);
     });
-    document.documentElement.style.background = 'var(--bg)';
-    document.body.style.background = 'var(--bg)';
+    document.documentElement.style.setProperty('background', 'var(--bg)', 'important');
+    document.body.style.setProperty('background', 'var(--bg)', 'important');
+    document.body.style.setProperty('background-color', 'var(--bg)', 'important');
     const themeMeta = document.querySelector('meta[name="theme-color"]');
     if (themeMeta) themeMeta.setAttribute('content', fixedPalette['--bg']);
     tg?.setBackgroundColor?.(fixedPalette['--bg']);
+  }
+
+  function enforceButtons() {
+    const btns = document.querySelectorAll('.btn');
+    btns.forEach((btn) => {
+      btn.style.setProperty('background-color', 'var(--surface)', 'important');
+      btn.style.setProperty('border-color', 'var(--stroke)', 'important');
+      btn.style.setProperty('color', 'var(--text)', 'important');
+      btn.style.setProperty('box-shadow', 'none', 'important');
+      btn.style.setProperty('-webkit-appearance', 'none', 'important');
+      btn.style.setProperty('appearance', 'none', 'important');
+    });
   }
 
   function lockScroll() {
@@ -584,12 +598,17 @@ p {
   });
 
   enforceFixedTheme();
+  enforceButtons();
 
   if (hasTelegram) {
     tg.ready();
     tg.expand?.();
     enforceFixedTheme();
-    tg.onEvent?.('themeChanged', enforceFixedTheme);
+    enforceButtons();
+    tg.onEvent?.('themeChanged', () => {
+      enforceFixedTheme();
+      enforceButtons();
+    });
   } else {
     console.warn('Telegram WebApp API not available; running in normal browser preview.');
   }

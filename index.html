@@ -3,11 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0b0b0b">
 <title>Realm — Minecraft Mini App</title>
 <style>
 :root {
-  --bg: #0f0f0f;
-  --surface: #0f0f0f;
+  --bg: #0b0b0b;
+  --surface: #0b0b0b;
   --text: #F2F2F2;
   --subtitle: #9a9a9a;
   --stroke: rgba(255,255,255,0.08);
@@ -460,8 +461,8 @@ p {
   const hasTelegram = Boolean(tg);
   let activeModal = null;
   const fixedPalette = {
-    '--bg': '#0f0f0f',
-    '--surface': '#0f0f0f',
+    '--bg': '#0b0b0b',
+    '--surface': '#0b0b0b',
     '--text': '#F2F2F2',
     '--subtitle': '#9a9a9a',
     '--stroke': 'rgba(255,255,255,0.08)',
@@ -478,6 +479,9 @@ p {
     });
     document.documentElement.style.background = 'var(--bg)';
     document.body.style.background = 'var(--bg)';
+    const themeMeta = document.querySelector('meta[name="theme-color"]');
+    if (themeMeta) themeMeta.setAttribute('content', fixedPalette['--bg']);
+    tg?.setBackgroundColor?.(fixedPalette['--bg']);
   }
 
   function lockScroll() {

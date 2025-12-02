@@ -14,6 +14,10 @@
   --radius: 14px;
 }
 
+html {
+  background: var(--bg) !important;
+}
+
 body {
   margin: 0;
   min-height: 100dvh;
@@ -54,8 +58,8 @@ p {
   text-align: center;
   padding: 12px;
   border-radius: 10px;
-  background: var(--surface);
-  border: 1px solid var(--stroke);
+  background: var(--surface) !important;
+  border: 1px solid var(--stroke) !important;
   color: var(--text);
   text-decoration: none;
   font-weight: 500;
@@ -455,34 +459,25 @@ p {
   const tg = window.Telegram?.WebApp;
   const hasTelegram = Boolean(tg);
   let activeModal = null;
+  const fixedPalette = {
+    '--bg': '#161616',
+    '--surface': '#161616',
+    '--text': '#F2F2F2',
+    '--subtitle': '#9a9a9a',
+    '--stroke': 'rgba(255,255,255,0.08)',
+  };
 
   const modals = Array.from(document.querySelectorAll('.modal'));
   const openModalButtons = document.querySelectorAll('[data-modal-target]');
   const closeModalButtons = document.querySelectorAll('[data-close-modal]');
   const externalLinks = document.querySelectorAll('.external-link');
 
-  function hexToRgba(hex, alpha) {
-    if (!hex || typeof hex !== 'string') return null;
-    const normalized = hex.replace('#', '');
-    if (![3, 6].includes(normalized.length)) return null;
-    const chunk = normalized.length === 3 ? normalized.split('').map(c => c + c).join('') : normalized;
-    const intVal = parseInt(chunk, 16);
-    const r = (intVal >> 16) & 255;
-    const g = (intVal >> 8) & 255;
-    const b = intVal & 255;
-    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-  }
-
-  function applyTheme(themeParams = {}) {
-    const setVar = (name, value) => {
-      if (value) root.style.setProperty(name, value);
-    };
-
-    setVar('--bg', themeParams.bg_color);
-    setVar('--surface', themeParams.secondary_bg_color || themeParams.bg_color);
-    setVar('--text', themeParams.text_color);
-    setVar('--subtitle', hexToRgba(themeParams.hint_color, 0.7));
-    setVar('--stroke', hexToRgba(themeParams.section_separator_color, 0.16));
+  function enforceFixedTheme() {
+    Object.entries(fixedPalette).forEach(([key, value]) => {
+      root.style.setProperty(key, value);
+    });
+    document.documentElement.style.background = 'var(--bg)';
+    document.body.style.background = 'var(--bg)';
   }
 
   function lockScroll() {
@@ -574,9 +569,13 @@ p {
     });
   });
 
+  enforceFixedTheme();
+
   if (hasTelegram) {
     tg.ready();
     tg.expand?.();
+    enforceFixedTheme();
+    tg.onEvent?.('themeChanged', enforceFixedTheme);
   } else {
     console.warn('Telegram WebApp API not available; running in normal browser preview.');
   }

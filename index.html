@@ -19,7 +19,7 @@ body {
   min-height: 100dvh;
   max-height: 100dvh;
   overflow: hidden;
-  background: var(--bg);
+  background: var(--bg) !important;
   color: var(--text);
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, Arial, sans-serif;
   display: flex;
@@ -577,8 +577,6 @@ p {
   if (hasTelegram) {
     tg.ready();
     tg.expand?.();
-    applyTheme(tg.themeParams);
-    tg.onEvent?.('themeChanged', () => applyTheme(tg.themeParams));
   } else {
     console.warn('Telegram WebApp API not available; running in normal browser preview.');
   }

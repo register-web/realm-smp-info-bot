@@ -110,8 +110,8 @@ p {
 }
 
 .logo-img {
-  width: min(330px, 92vw);
-  height: 196px;
+  width: min(340px, 90vw);
+  height: 192px;
   object-fit: contain;
   border-radius: 10px;
   margin: 0 auto 6px auto;
@@ -217,6 +217,41 @@ p {
   opacity: 0.92;
 }
 
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(14px + env(safe-area-inset-bottom));
+  transform: translate(-50%, 16px);
+  background: #241414;
+  border: 1px solid #ff4d4d;
+  color: #ffb2b2;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: clamp(13px, 3.2vw, 14px);
+  line-height: 1.4;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.4);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .2s ease, transform .2s ease;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.toast-icon {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  flex-shrink: 0;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.35));
+}
+
 /* Modal styling */
 .modal {
   position: fixed;
@@ -297,21 +332,6 @@ p {
 .modal-text .muted {
   color: var(--subtitle);
 }
-button.text-link {
-  background: none;
-  border: none;
-  border-bottom: 2px solid rgba(255,255,255,0.95);
-  padding: 0;
-  font: inherit;
-  cursor: pointer;
-  appearance: none;
-  -webkit-appearance: none;
-  text-decoration: none;
-}
-button.text-link:focus-visible {
-  outline: 2px solid var(--text);
-  outline-offset: 3px;
-}
 
 .modal-header {
   position: relative;
@@ -377,67 +397,6 @@ button.text-link:focus-visible {
   50% { transform: translate(0.9px, -1.6px); }
   100% { transform: translate(-0.9px, -0.6px); }
 }
-
-.dev-toast {
-  position: fixed;
-  left: 50%;
-  bottom: calc(16px + env(safe-area-inset-bottom));
-  transform: translate(-50%, 18px) scale(0.96);
-  filter: blur(2px);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  border-radius: 14px;
-  background: rgba(20, 20, 20, 0.94);
-  border: 1px solid #2a2a2a;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.38);
-  opacity: 0;
-  pointer-events: none;
-  transition:
-    opacity .18s ease,
-    transform .24s cubic-bezier(0.22, 0.61, 0.36, 1),
-    filter .2s ease;
-  z-index: 20;
-  will-change: transform, opacity, filter;
-}
-
-.dev-toast.visible {
-  opacity: 1;
-  transform: translate(-50%, 0) scale(1);
-  filter: blur(0);
-  pointer-events: auto;
-  animation: toast-bounce .46s cubic-bezier(0.25, 0.9, 0.3, 1.35);
-}
-
-.dev-toast__text {
-  font-size: clamp(13.5px, 3.4vw, 14.5px);
-  font-weight: 700;
-  color: var(--text);
-  white-space: nowrap;
-}
-
-.dev-toast__img {
-  width: 42px;
-  height: 42px;
-  border-radius: 10px;
-  object-fit: cover;
-}
-
-@keyframes toast-bounce {
-  0% {
-    transform: translate(-50%, 18px) scale(0.9);
-    filter: blur(3px);
-  }
-  60% {
-    transform: translate(-50%, -3px) scale(1.02);
-    filter: blur(0.4px);
-  }
-  100% {
-    transform: translate(-50%, 0) scale(1);
-    filter: blur(0);
-  }
-}
 </style>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
@@ -467,12 +426,12 @@ button.text-link:focus-visible {
       </div>
       <div class="modal-inner">
         <p class="modal-text">
-          <strong>1.</strong> подай заявку в <button type="button" class="text-link small dev-action" data-dev-action="bot">боте</button>
+          <strong>1.</strong> подай заявку в <a href="https://t.me/RealmSMPSupport_bot" class="text-link small external-link" rel="noopener noreferrer">боте</a>
           <span class="muted inline-gap">заявки принимаются автоматом в течение 48 часов</span><br><br>
-          <strong>2.</strong> скачай <button type="button" class="text-link small dev-action" data-dev-action="build">сборку</button>
+          <strong>2.</strong> скачай <a href="https://t.me/realm_smp" class="text-link small external-link" rel="noopener noreferrer">сборку</a>
           <span class="muted inline-gap">это минимальная сборка для игры на сервере</span><br><br>
           <strong>3.</strong> залетай играть 🚀<br><br>
-          если какие-то проблемы со сборкой или анкетой — <button type="button" class="text-link small dev-action" data-dev-action="support">пиши в поддержку</button>
+          если какие-то проблемы со сборкой или анкетой — <a href="https://t.me/RealmSMPSupport_bot" class="text-link small external-link" rel="noopener noreferrer">пиши в поддержку</a>
         </p>
       </div>
     </div>
@@ -542,9 +501,9 @@ button.text-link:focus-visible {
     </div>
   </div>
 
-  <div id="devToast" class="dev-toast" role="status" aria-live="polite">
-    <span class="dev-toast__text">ещё в разработке</span>
-    <img class="dev-toast__img" src="2.png" alt="ещё в разработке" width="48" height="48" />
+  <div id="devToast" class="toast" role="status" aria-live="polite">
+    <span id="devToastText"></span>
+    <img src="2.png" alt="" class="toast-icon" aria-hidden="true">
   </div>
 
 <script>
@@ -552,7 +511,6 @@ button.text-link:focus-visible {
   const tg = window.Telegram?.WebApp;
   const hasTelegram = Boolean(tg);
   let activeModal = null;
-  let toastTimer = null;
   const fixedPalette = {
     '--bg': '#0e0e0e',
     '--surface': '#141414',
@@ -564,10 +522,11 @@ button.text-link:focus-visible {
   const modals = Array.from(document.querySelectorAll('.modal'));
   const openModalButtons = document.querySelectorAll('[data-modal-target]');
   const closeModalButtons = document.querySelectorAll('[data-close-modal]');
-  const externalLinks = document.querySelectorAll('.external-link');
+  const devBlockedLinks = document.querySelectorAll('#playModal .external-link');
+  const externalLinks = document.querySelectorAll('.external-link:not(#playModal .external-link)');
   const devToast = document.getElementById('devToast');
-  const devToastText = devToast?.querySelector('.dev-toast__text');
-  const devActionButtons = document.querySelectorAll('.dev-action');
+  const devToastText = document.getElementById('devToastText');
+  let toastTimer = null;
 
   function enforceFixedTheme() {
     Object.entries(fixedPalette).forEach(([key, value]) => {
@@ -639,6 +598,21 @@ button.text-link:focus-visible {
     }
   }
 
+  function showDevToast(text) {
+    if (!devToast || !devToastText) return;
+    clearTimeout(toastTimer);
+    devToastText.textContent = text;
+    devToast.classList.remove('show');
+    // hard reset transition to restart animation on rapid clicks
+    devToast.style.transition = 'none';
+    void devToast.offsetWidth; // force layout
+    devToast.style.transition = '';
+    requestAnimationFrame(() => devToast.classList.add('show'));
+    toastTimer = setTimeout(() => {
+      devToast.classList.remove('show');
+    }, 1000);
+  }
+
   function openExternal(url) {
     if (!url) return;
     if (hasTelegram && typeof tg.openLink === 'function') {
@@ -646,18 +620,6 @@ button.text-link:focus-visible {
     } else {
       window.open(url, '_blank', 'noopener,noreferrer');
     }
-  }
-
-  function showDevToast(message = 'ещё в разработке') {
-    if (!devToast || !devToastText) return;
-    devToastText.textContent = message;
-    devToast.classList.remove('visible');
-    void devToast.offsetWidth; // restart transition
-    devToast.classList.add('visible');
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => {
-      devToast.classList.remove('visible');
-    }, 1800);
   }
 
   openModalButtons.forEach((btn) => {
@@ -686,18 +648,18 @@ button.text-link:focus-visible {
     }
   });
 
+  devBlockedLinks.forEach((link) => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      showDevToast('ещё в разработке');
+    });
+  });
+
   externalLinks.forEach((link) => {
     link.setAttribute('rel', 'noopener noreferrer');
     link.addEventListener('click', (e) => {
       e.preventDefault();
       openExternal(link.href);
-    });
-  });
-
-  devActionButtons.forEach((btn) => {
-    btn.addEventListener('click', (e) => {
-      e.preventDefault();
-      showDevToast();
     });
   });
 

@@ -133,7 +133,6 @@ p {
 }
 
 .logo-img:hover {
-  --tilt-scale: 1.02;
   filter: drop-shadow(0 4px 12px rgba(0,0,0,0.28));
 }
 
@@ -249,7 +248,6 @@ p {
 }
 
 .payment-button:hover {
-  --tilt-scale: 1.04;
   opacity: 0.92;
   box-shadow: 0 6px 16px rgba(78, 0, 206, 0.22);
 }
@@ -642,10 +640,65 @@ button.text-link:focus-visible {
   const devToast = document.getElementById('devToast');
   const devToastText = devToast?.querySelector('.dev-toast__text');
   const devActionButtons = document.querySelectorAll('.dev-action');
-  const clickSound = new Audio('click.mp3');
-  clickSound.preload = 'auto';
-  const denySound = new Audio('deny.mp3');
-  denySound.preload = 'auto';
+
+  function createAudioPool(src, size = 3, baseVolume = 1) {
+    const pool = Array.from({ length: size }, () => {
+      const a = new Audio(src);
+      a.preload = 'auto';
+      a.volume = baseVolume;
+      return a;
+    });
+    let idx = 0;
+    const play = () => {
+      const a = pool[idx];
+      idx = (idx + 1) % pool.length;
+      try {
+        a.currentTime = 0;
+        const p = a.play();
+        if (p && typeof p.catch === 'function') p.catch(() => {});
+      } catch (_) {
+        /* ignore */
+      }
+    };
+    const prime = () => {
+      pool.forEach((a) => {
+        const prevVol = a.volume;
+        a.muted = true;
+        a.volume = 0;
+        const p = a.play();
+        const restore = () => {
+          a.pause();
+          a.currentTime = 0;
+          a.muted = false;
+          a.volume = prevVol;
+        };
+        if (p && typeof p.then === 'function') {
+          p.then(restore).catch(restore);
+        } else {
+          restore();
+        }
+      });
+    };
+    return { play, prime };
+  }
+
+  const clickPool = createAudioPool('click.mp3', 4, 0.42);
+  const denyPool = createAudioPool('deny.mp3', 3, 0.32);
+  let audioUnlocked = false;
+
+  function unlockAudio() {
+    if (audioUnlocked) return;
+    audioUnlocked = true;
+    clickPool.prime();
+    denyPool.prime();
+    window.removeEventListener('pointerdown', unlockAudio);
+    window.removeEventListener('touchstart', unlockAudio);
+    window.removeEventListener('click', unlockAudio);
+  }
+
+  window.addEventListener('pointerdown', unlockAudio, { passive: true });
+  window.addEventListener('touchstart', unlockAudio, { passive: true });
+  window.addEventListener('click', unlockAudio, { passive: true });
 
   function enforceFixedTheme() {
     Object.entries(fixedPalette).forEach(([key, value]) => {
@@ -728,7 +781,7 @@ button.text-link:focus-visible {
 
   function showDevToast(message = 'ещё в разработке') {
     if (!devToast || !devToastText) return;
-    playSound(denySound, 0.3);
+    denyPool.play();
     devToastText.textContent = message;
     devToast.classList.remove('visible');
     void devToast.offsetWidth; // restart transition
@@ -789,49 +842,65 @@ button.text-link:focus-visible {
 
   const canMagnet = window.matchMedia?.('(hover: hover) and (pointer: fine)')?.matches;
 
-  function attachMagnetEffect(targets, { strength = 4, scale = 1.03, rotFactor = 0.12 } = {}) {
+  function attachMagnetEffect(targets, { strength = 3, scale = 1.02, rotFactor = 0.05, ease = 0.16 } = {}) {
     if (!canMagnet) return;
     targets.forEach((el) => {
       if (!el) return;
-      const reset = () => {
-        el.style.setProperty('--tilt-x', '0px');
-        el.style.setProperty('--tilt-y', '0px');
-        el.style.setProperty('--tilt-scale', '1');
-        el.style.setProperty('--tilt-rot', '0deg');
+      let target = { x: 0, y: 0, scale: 1, rot: 0 };
+      let current = { ...target };
+      let rafId = null;
+
+      const apply = () => {
+        el.style.setProperty('--tilt-x', `${current.x.toFixed(3)}px`);
+        el.style.setProperty('--tilt-y', `${current.y.toFixed(3)}px`);
+        el.style.setProperty('--tilt-scale', current.scale.toFixed(3));
+        el.style.setProperty('--tilt-rot', `${current.rot.toFixed(3)}deg`);
       };
-      reset();
+
+      const step = () => {
+        current.x += (target.x - current.x) * ease;
+        current.y += (target.y - current.y) * ease;
+        current.scale += (target.scale - current.scale) * ease;
+        current.rot += (target.rot - current.rot) * ease;
+        apply();
+        const stillMoving =
+          Math.abs(target.x - current.x) +
+          Math.abs(target.y - current.y) +
+          Math.abs(target.scale - current.scale) +
+          Math.abs(target.rot - current.rot) > 0.01;
+        if (stillMoving) rafId = requestAnimationFrame(step);
+        else rafId = null;
+      };
+
+      const reset = () => {
+        target = { x: 0, y: 0, scale: 1, rot: 0 };
+        if (!rafId) rafId = requestAnimationFrame(step);
+      };
+
       el.addEventListener('mouseenter', () => {
-        el.style.setProperty('--tilt-scale', String(scale));
+        target.scale = scale;
+        if (!rafId) rafId = requestAnimationFrame(step);
       });
+
       el.addEventListener('mousemove', (e) => {
         const rect = el.getBoundingClientRect();
         const relX = (e.clientX - (rect.left + rect.width / 2)) / (rect.width / 2);
         const relY = (e.clientY - (rect.top + rect.height / 2)) / (rect.height / 2);
         const dx = Math.max(-1, Math.min(1, relX)) * strength;
         const dy = Math.max(-1, Math.min(1, relY)) * strength;
-        el.style.setProperty('--tilt-x', `${dx}px`);
-        el.style.setProperty('--tilt-y', `${dy}px`);
-        const rot = -(dx * rotFactor) + (dy * rotFactor * 0.6);
-        el.style.setProperty('--tilt-rot', `${rot}deg`);
+        target.x = dx;
+        target.y = dy;
+        target.rot = -(dx * rotFactor) + (dy * rotFactor * 0.6);
+        if (!rafId) rafId = requestAnimationFrame(step);
       });
+
       el.addEventListener('mouseleave', reset);
+      reset();
     });
   }
 
-  attachMagnetEffect([document.querySelector('.logo-img')], { strength: 4, scale: 1.03, rotFactor: 0.1 });
-  attachMagnetEffect(Array.from(document.querySelectorAll('.payment-button')), { strength: 3, scale: 1.04, rotFactor: 0.08 });
-
-  function playSound(audio, volume = 1) {
-    if (!audio) return;
-    try {
-      audio.currentTime = 0;
-      audio.volume = volume;
-      const p = audio.play();
-      if (p && typeof p.catch === 'function') p.catch(() => {});
-    } catch (_) {
-      /* ignore */
-    }
-  }
+  attachMagnetEffect([document.querySelector('.logo-img')], { strength: 2.4, scale: 1.018, rotFactor: 0.03, ease: 0.18 });
+  attachMagnetEffect(Array.from(document.querySelectorAll('.payment-button')), { strength: 1.8, scale: 1.02, rotFactor: 0.025, ease: 0.18 });
 
   const playableButtons = [
     ...document.querySelectorAll('.btn'),
@@ -841,7 +910,7 @@ button.text-link:focus-visible {
     ...document.querySelectorAll('.external-link'),
   ];
 
-  const playClick = () => playSound(clickSound, 0.4);
+  const playClick = () => clickPool.play();
 
   playableButtons.forEach((el) => {
     el.addEventListener('click', () => playClick());

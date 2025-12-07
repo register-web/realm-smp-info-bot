@@ -641,64 +641,113 @@ button.text-link:focus-visible {
   const devToastText = devToast?.querySelector('.dev-toast__text');
   const devActionButtons = document.querySelectorAll('.dev-action');
 
-  function createAudioPool(src, size = 3, baseVolume = 1) {
-    const pool = Array.from({ length: size }, () => {
-      const a = new Audio(src);
+  const audioManager = (() => {
+    let ctx = null;
+    let buffers = {};
+    let loading = null;
+    let unlocked = false;
+
+    const fallback = {
+      click: new Audio('click.mp3'),
+      deny: new Audio('deny.mp3'),
+    };
+    Object.values(fallback).forEach((a) => {
       a.preload = 'auto';
-      a.volume = baseVolume;
-      return a;
     });
-    let idx = 0;
-    const play = () => {
-      const a = pool[idx];
-      idx = (idx + 1) % pool.length;
+
+    const playFallback = (name, volume = 1) => {
+      const a = fallback[name];
+      if (!a) return;
       try {
         a.currentTime = 0;
+        a.volume = volume;
         const p = a.play();
         if (p && typeof p.catch === 'function') p.catch(() => {});
       } catch (_) {
         /* ignore */
       }
     };
-    const prime = () => {
-      pool.forEach((a) => {
-        const prevVol = a.volume;
-        a.muted = true;
-        a.volume = 0;
-        const p = a.play();
+
+    const loadBuffer = async (url) => {
+      if (!ctx) return null;
+      const res = await fetch(url);
+      const arr = await res.arrayBuffer();
+      return ctx.decodeAudioData(arr);
+    };
+
+    const ensureContext = () => {
+      if (ctx) return ctx;
+      ctx = new (window.AudioContext || window.webkitAudioContext)();
+      return ctx;
+    };
+
+    const primeFallback = () => {
+      Object.values(fallback).forEach((a) => {
         const restore = () => {
           a.pause();
           a.currentTime = 0;
           a.muted = false;
-          a.volume = prevVol;
         };
-        if (p && typeof p.then === 'function') {
-          p.then(restore).catch(restore);
-        } else {
-          restore();
-        }
+        a.muted = true;
+        a.volume = 0;
+        const p = a.play();
+        if (p && typeof p.then === 'function') p.then(restore).catch(restore);
+        else restore();
       });
     };
-    return { play, prime };
-  }
 
-  const clickPool = createAudioPool('click.mp3', 4, 0.42);
-  const denyPool = createAudioPool('deny.mp3', 3, 0.32);
-  let audioUnlocked = false;
+    const unlock = async () => {
+      if (unlocked) return;
+      unlocked = true;
+      try {
+        ensureContext();
+        await ctx.resume();
+        if (!loading) {
+          loading = Promise.all([
+            loadBuffer('click.mp3'),
+            loadBuffer('deny.mp3'),
+          ]).then(([clickBuf, denyBuf]) => {
+            buffers = { click: clickBuf, deny: denyBuf };
+          }).catch(() => {
+            buffers = {};
+          });
+        }
+      } catch (_) {
+        buffers = {};
+      } finally {
+        primeFallback();
+      }
+    };
 
-  function unlockAudio() {
-    if (audioUnlocked) return;
-    audioUnlocked = true;
-    clickPool.prime();
-    denyPool.prime();
-    window.removeEventListener('pointerdown', unlockAudio);
-    window.removeEventListener('touchstart', unlockAudio);
-    window.removeEventListener('click', unlockAudio);
-  }
+    const play = (name, volume = 1) => {
+      const buffer = buffers[name];
+      if (buffer && ctx && ctx.state !== 'closed') {
+        try {
+          const source = ctx.createBufferSource();
+          source.buffer = buffer;
+          const gain = ctx.createGain();
+          gain.gain.value = volume;
+          source.connect(gain).connect(ctx.destination);
+          source.start(0);
+          return;
+        } catch (_) {
+          /* fallback below */
+        }
+      }
+      playFallback(name, volume);
+    };
 
-  window.addEventListener('pointerdown', unlockAudio, { passive: true });
-  window.addEventListener('touchstart', unlockAudio, { passive: true });
-  window.addEventListener('click', unlockAudio, { passive: true });
+    const attachUnlock = () => {
+      const handler = () => unlock();
+      window.addEventListener('pointerdown', handler, { passive: true, once: true });
+      window.addEventListener('touchstart', handler, { passive: true, once: true });
+      window.addEventListener('click', handler, { passive: true, once: true });
+    };
+
+    attachUnlock();
+
+    return { play, unlock };
+  })();
 
   function enforceFixedTheme() {
     Object.entries(fixedPalette).forEach(([key, value]) => {
@@ -781,7 +830,7 @@ button.text-link:focus-visible {
 
   function showDevToast(message = 'ещё в разработке') {
     if (!devToast || !devToastText) return;
-    denyPool.play();
+    audioManager.play('deny', 0.32);
     devToastText.textContent = message;
     devToast.classList.remove('visible');
     void devToast.offsetWidth; // restart transition
@@ -910,7 +959,7 @@ button.text-link:focus-visible {
     ...document.querySelectorAll('.external-link'),
   ];
 
-  const playClick = () => clickPool.play();
+  const playClick = () => audioManager.play('click', 0.42);
 
   playableButtons.forEach((el) => {
     el.addEventListener('click', () => playClick());

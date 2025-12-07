@@ -531,7 +531,7 @@ button.text-link:focus-visible {
               <svg width='16' height='16' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'><path d='M21.5 3.5L2.5 10.5C1.5 10.9 1.6 12.2 2.6 12.5L9 14.5L11 21C11.3 22 12.6 22 13 21.1L15.5 15.5L20 19C20.9 19.7 22.2 19.2 22.5 18.1L24 4.5C24.3 3.3 22.9 2.4 21.5 3.5Z' fill='white'/></svg>
             </a>
             <!-- Discord Icon -->
-            <a href="https://discord.gg/W2ePNufkDf" class="icon-button external-link" rel="noopener noreferrer">
+            <a href="https://discord.gg/W2ePNufkDf" class="icon-button external-link" rel="noopener noreferrer" data-dev-block="discord">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
                 <path d="M20.317 4.3698C18.99 3.7638 17.575 3.3328 16.102 3.0928C15.9005 3.45822 15.709 3.84008 15.53 4.2368C13.997 4.0128 12.463 4.0128 10.931 4.2368C10.752 3.84008 10.56 3.45822 10.359 3.0928C8.88597 3.3338 7.47097 3.7648 6.14397 4.3708C2.88497 9.0418 2.04997 13.5918 2.38097 18.0878C4.08197 19.3408 5.90997 20.2398 7.83297 20.8178C8.33097 20.0708 8.76897 19.2778 9.13797 18.4508C8.33097 18.2488 7.55897 17.9658 6.82597 17.6048C7.01045 17.4792 7.18944 17.3454 7.36197 17.2038C11.258 19.0038 15.585 19.0038 19.481 17.2038C19.654 17.3454 19.832 17.4792 20.015 17.6048C19.282 17.9668 18.51 18.2498 17.703 18.4518C18.074 19.2788 18.511 20.0708 19.009 20.8168C20.936 20.2388 22.764 19.3398 24.464 18.0868C24.84 13.4968 23.711 8.9698 20.317 4.3698ZM8.80297 14.6628C7.74197 14.6628 6.88297 13.6828 6.88297 12.4578C6.88297 11.2328 7.72197 10.2528 8.80297 10.2528C9.88397 10.2528 10.742 11.2328 10.722 12.4578C10.722 13.6828 9.88397 14.6628 8.80297 14.6628ZM15.197 14.6628C14.136 14.6628 13.277 13.6828 13.277 12.4578C13.277 11.2328 14.115 10.2528 15.197 10.2528C16.278 10.2528 17.137 11.2328 17.117 12.4578C17.117 13.6828 16.278 14.6628 15.197 14.6628Z"/>
               </svg>
@@ -588,7 +588,8 @@ button.text-link:focus-visible {
   const modals = Array.from(document.querySelectorAll('.modal'));
   const openModalButtons = document.querySelectorAll('[data-modal-target]');
   const closeModalButtons = document.querySelectorAll('[data-close-modal]');
-  const externalLinks = document.querySelectorAll('.external-link');
+  const devBlockedLinks = document.querySelectorAll('[data-dev-block]');
+  const externalLinks = document.querySelectorAll('.external-link:not([data-dev-block])');
   const devToast = document.getElementById('devToast');
   const devToastText = devToast?.querySelector('.dev-toast__text');
   const devActionButtons = document.querySelectorAll('.dev-action');
@@ -715,6 +716,13 @@ button.text-link:focus-visible {
     link.addEventListener('click', (e) => {
       e.preventDefault();
       openExternal(link.href);
+    });
+  });
+
+  devBlockedLinks.forEach((link) => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      showDevToast();
     });
   });
 

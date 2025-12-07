@@ -77,11 +77,18 @@ p {
   font-weight: 500;
   font-size: clamp(14px, 3.4vw, 15.5px);
   margin: 10px auto 0 auto;
-  transition: 0.15s ease;
+  transition: transform .18s ease, border-color .18s ease, background .18s ease, color .18s ease, opacity .18s ease;
+  transform: translateY(0);
 }
 
 .btn:hover {
   border-color: var(--text);
+  transform: translateY(-1px) scale(1.01);
+}
+
+.btn:active {
+  transform: translateY(0) scale(0.985);
+  opacity: 0.94;
 }
 
 .profile {
@@ -110,19 +117,24 @@ p {
 }
 
 .logo-img {
+  --tilt-x: 0px;
+  --tilt-y: 0px;
+  --tilt-scale: 1;
+  --tilt-rot: 0deg;
   width: min(330px, 92vw);
   height: 196px;
   object-fit: contain;
-  border-radius: 10px;
+  border-radius: 12px;
   margin: 0 auto 6px auto;
   display: block;
-  transform: translateX(10px);
-  transition: transform .25s ease;
+  transform: translateX(10px) translate(var(--tilt-x), var(--tilt-y)) rotate(var(--tilt-rot)) scale(var(--tilt-scale));
+  transition: transform .2s ease, filter .2s ease;
   will-change: transform;
 }
 
 .logo-img:hover {
-  transform: translateX(10px) scale(1.03);
+  --tilt-scale: 1.02;
+  filter: drop-shadow(0 4px 12px rgba(0,0,0,0.28));
 }
 
 .text-link {
@@ -193,10 +205,16 @@ p {
   align-items: center;
   justify-content: center;
   text-decoration: none;
+  transition: transform .16s ease, background .16s ease;
 }
 
 .icon-button:hover {
   background: #3A3A3A;
+  transform: translateY(-1px);
+}
+
+.icon-button:active {
+  transform: translateY(0) scale(0.97);
 }
 
 .payment-row {
@@ -207,14 +225,21 @@ p {
 }
 
 .payment-button {
+  --tilt-x: 0px;
+  --tilt-y: 0px;
+  --tilt-scale: 1;
+  --tilt-rot: 0deg;
   width: 48px;
   height: 48px;
-  border-radius: 14px;
+  border-radius: 16px;
   background: #4E00CE;
   display: flex;
   align-items: center;
   justify-content: center;
   text-decoration: none;
+  transform: translate(var(--tilt-x), var(--tilt-y)) rotate(var(--tilt-rot)) scale(var(--tilt-scale));
+  transition: transform .18s ease, opacity .18s ease, box-shadow .18s ease;
+  will-change: transform;
 }
 
 .payment-button img {
@@ -224,7 +249,14 @@ p {
 }
 
 .payment-button:hover {
+  --tilt-scale: 1.04;
   opacity: 0.92;
+  box-shadow: 0 6px 16px rgba(78, 0, 206, 0.22);
+}
+
+.payment-button:active {
+  --tilt-scale: 0.97;
+  box-shadow: 0 3px 10px rgba(78, 0, 206, 0.18);
 }
 
 /* Modal styling */
@@ -610,6 +642,10 @@ button.text-link:focus-visible {
   const devToast = document.getElementById('devToast');
   const devToastText = devToast?.querySelector('.dev-toast__text');
   const devActionButtons = document.querySelectorAll('.dev-action');
+  const clickSound = new Audio('click.mp3');
+  clickSound.preload = 'auto';
+  const denySound = new Audio('deny.mp3');
+  denySound.preload = 'auto';
 
   function enforceFixedTheme() {
     Object.entries(fixedPalette).forEach(([key, value]) => {
@@ -692,6 +728,7 @@ button.text-link:focus-visible {
 
   function showDevToast(message = 'ещё в разработке') {
     if (!devToast || !devToastText) return;
+    playSound(denySound, 0.3);
     devToastText.textContent = message;
     devToast.classList.remove('visible');
     void devToast.offsetWidth; // restart transition
@@ -748,6 +785,66 @@ button.text-link:focus-visible {
       e.preventDefault();
       showDevToast();
     });
+  });
+
+  const canMagnet = window.matchMedia?.('(hover: hover) and (pointer: fine)')?.matches;
+
+  function attachMagnetEffect(targets, { strength = 4, scale = 1.03, rotFactor = 0.12 } = {}) {
+    if (!canMagnet) return;
+    targets.forEach((el) => {
+      if (!el) return;
+      const reset = () => {
+        el.style.setProperty('--tilt-x', '0px');
+        el.style.setProperty('--tilt-y', '0px');
+        el.style.setProperty('--tilt-scale', '1');
+        el.style.setProperty('--tilt-rot', '0deg');
+      };
+      reset();
+      el.addEventListener('mouseenter', () => {
+        el.style.setProperty('--tilt-scale', String(scale));
+      });
+      el.addEventListener('mousemove', (e) => {
+        const rect = el.getBoundingClientRect();
+        const relX = (e.clientX - (rect.left + rect.width / 2)) / (rect.width / 2);
+        const relY = (e.clientY - (rect.top + rect.height / 2)) / (rect.height / 2);
+        const dx = Math.max(-1, Math.min(1, relX)) * strength;
+        const dy = Math.max(-1, Math.min(1, relY)) * strength;
+        el.style.setProperty('--tilt-x', `${dx}px`);
+        el.style.setProperty('--tilt-y', `${dy}px`);
+        const rot = -(dx * rotFactor) + (dy * rotFactor * 0.6);
+        el.style.setProperty('--tilt-rot', `${rot}deg`);
+      });
+      el.addEventListener('mouseleave', reset);
+    });
+  }
+
+  attachMagnetEffect([document.querySelector('.logo-img')], { strength: 4, scale: 1.03, rotFactor: 0.1 });
+  attachMagnetEffect(Array.from(document.querySelectorAll('.payment-button')), { strength: 3, scale: 1.04, rotFactor: 0.08 });
+
+  function playSound(audio, volume = 1) {
+    if (!audio) return;
+    try {
+      audio.currentTime = 0;
+      audio.volume = volume;
+      const p = audio.play();
+      if (p && typeof p.catch === 'function') p.catch(() => {});
+    } catch (_) {
+      /* ignore */
+    }
+  }
+
+  const playableButtons = [
+    ...document.querySelectorAll('.btn'),
+    ...document.querySelectorAll('.payment-button'),
+    ...document.querySelectorAll('.icon-button'),
+    ...document.querySelectorAll('.modal-close'),
+    ...document.querySelectorAll('.external-link'),
+  ];
+
+  const playClick = () => playSound(clickSound, 0.4);
+
+  playableButtons.forEach((el) => {
+    el.addEventListener('click', () => playClick());
   });
 
   enforceFixedTheme();
